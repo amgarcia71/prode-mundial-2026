@@ -71,8 +71,8 @@ class KeeperGame {
     this.kW = Math.max(10, Math.round(W * 0.013));   // ancho del cuerpo
 
     // Posición X del arquero: JUSTO en la boca del arco (lado cancha), bien visible
-    if (!this.hk) this.hk = { y: this.H / 2 - this.kH / 2, vy: 4.3 };
-    if (!this.ak) this.ak = { y: this.H / 2 - this.kH / 2, vy: -3.75 };
+    if (!this.hk) this.hk = { y: this.H / 2 - this.kH / 2, vy: 8.6 };
+    if (!this.ak) this.ak = { y: this.H / 2 - this.kH / 2, vy: -7.5 };
     this.hk.x = this.gD - Math.round(this.kW * 0.5);   // sobre la línea de gol
     this.ak.x = W - this.gD - Math.round(this.kW * 0.5);
 
