@@ -71,8 +71,8 @@ class KeeperGame {
     this.kW = Math.max(10, Math.round(W * 0.013));   // ancho del cuerpo
 
     // Posición X del arquero: JUSTO en la boca del arco (lado cancha), bien visible
-    if (!this.hk) this.hk = { y: this.H / 2 - this.kH / 2, vy: 3.45 };
-    if (!this.ak) this.ak = { y: this.H / 2 - this.kH / 2, vy: -3.0 };
+    if (!this.hk) this.hk = { y: this.H / 2 - this.kH / 2, vy: 4.3 };
+    if (!this.ak) this.ak = { y: this.H / 2 - this.kH / 2, vy: -3.75 };
     this.hk.x = this.gD - Math.round(this.kW * 0.5);   // sobre la línea de gol
     this.ak.x = W - this.gD - Math.round(this.kW * 0.5);
 
@@ -117,6 +117,7 @@ class KeeperGame {
       this.ball.vx = dx / d * spd;
       this.ball.vy = dy / d * spd;
       this.phase = 'shooting';
+      this._sfx('kick');
     }
     this.drag = null;
   }
@@ -187,6 +188,7 @@ class KeeperGame {
     this._msg(`⚽  ¡GOOOL!  ${team === 'home' ? this.home.name : this.away.name}`, 120, 'scored');
     this._burst(team);
     this._syncUI();
+    this._sfx('goal');
     setTimeout(() => this._rst(), 2100);
   }
   _save(ball, sign) {
@@ -194,17 +196,79 @@ class KeeperGame {
     ball.vx = sign * (Math.abs(ball.vx) * 0.5 + 3);
     ball.vy = (Math.random() - 0.5) * 8;
     this._msg('🧤  ¡ATAJADA!  Intentá de nuevo', 110, 'saved');
+    this._sfx('save');
     setTimeout(() => this._rst(), 1800);
   }
   _miss(ball, sign) {
     ball.vx = sign * Math.abs(ball.vx) * 0.4;
     ball.vy = -ball.vy * 0.5;
     this._msg('📯  Afuera del palo', 80, 'missed');
+    this._sfx('occasion');
     setTimeout(() => this._rst(), 1300);
   }
 
   _msg(txt, frames, phase) { this.message = txt; this.msgFrames = frames; this.phase = phase; }
   _rst() { this._resetBall(); this.ballAngle = 0; this.message = null; this.phase = 'ready'; }
+
+  // ── AUDIO (Web Audio API — síntesis pura, sin archivos) ─────────────────
+  _sfx(type) {
+    try {
+      if (!this._ac) this._ac = new (window.AudioContext || window.webkitAudioContext)();
+      const ac = this._ac;
+      if (ac.state === 'suspended') ac.resume();
+      const t = ac.currentTime;
+
+      const osc = (freq, type2, start, dur, vol, freqEnd) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.connect(g); g.connect(ac.destination);
+        o.type = type2 || 'sine';
+        o.frequency.setValueAtTime(freq, start);
+        if (freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, start + dur);
+        g.gain.setValueAtTime(vol, start);
+        g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        o.start(start); o.stop(start + dur + 0.01);
+      };
+
+      const noise = (dur, vol, lo, hi) => {
+        const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src = ac.createBufferSource();
+        const flt = ac.createBiquadFilter();
+        const g   = ac.createGain();
+        src.buffer = buf;
+        flt.type = 'bandpass'; flt.frequency.value = (lo + hi) / 2; flt.Q.value = 0.8;
+        src.connect(flt); flt.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        src.start(t); src.stop(t + dur + 0.01);
+      };
+
+      if (type === 'kick') {
+        // Golpe de pelota: thump grave + burst de ruido
+        osc(110, 'sine',     t,       0.18, 0.9, 35);
+        osc(220, 'triangle', t,       0.08, 0.4, 60);
+        noise(0.06, 0.5, 200, 900);
+      } else if (type === 'save') {
+        // Atajada: palmazo de guante
+        noise(0.12, 0.9, 500, 2000);
+        osc(180, 'sine', t, 0.12, 0.6, 90);
+      } else if (type === 'goal') {
+        // Gol: fanfarria ascendente + bombo
+        [0, 0.10, 0.20, 0.32].forEach((dt, i) => {
+          const freqs = [523, 659, 784, 1047];
+          osc(freqs[i], 'sine', t + dt, 0.35, 0.45);
+        });
+        // bombo de celebración
+        osc(80, 'sine', t, 0.3, 0.8, 30);
+        noise(0.25, 0.3, 200, 600);
+      } else if (type === 'occasion') {
+        // Ocasión: silbido descendente + quejido de la tribuna
+        osc(700, 'sine', t, 0.35, 0.3, 200);
+        noise(0.4, 0.25, 300, 900);
+      }
+    } catch(e) {}
+  }
 
   _syncUI() {
     const { home, away } = this.score;
