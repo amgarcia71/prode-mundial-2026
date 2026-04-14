@@ -66,9 +66,9 @@ class KeeperGame {
     this.gH = Math.round(H * 0.78);                  // altura del arco (casi toda la pantalla)
     this.gY = Math.round((H - this.gH) / 2);         // top Y del arco
 
-    // Arquero — ocupa ~48 % del alto del arco
-    this.kH = Math.round(this.gH * 0.48);
-    this.kW = Math.max(28, Math.round(W * 0.038));   // ancho del cuerpo
+    // Arquero — ocupa ~16 % del alto del arco (1/3 del tamaño anterior)
+    this.kH = Math.round(this.gH * 0.16);
+    this.kW = Math.max(10, Math.round(W * 0.013));   // ancho del cuerpo
 
     // Posición X del arquero: JUSTO en la boca del arco (lado cancha), bien visible
     if (!this.hk) this.hk = { y: this.H / 2 - this.kH / 2, vy: 2.3 };
