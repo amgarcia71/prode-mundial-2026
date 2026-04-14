@@ -31,6 +31,8 @@ class KeeperGame {
     window.addEventListener('resize', () => this.resize());
     this._input();
     this._syncUI();
+    const rb = document.getElementById('resetScoreBtn');
+    if (rb) rb.addEventListener('click', () => { this.score = { home: 0, away: 0 }; this._syncUI(); this._rst(); });
     requestAnimationFrame(() => this._loop());
   }
 
