@@ -126,13 +126,20 @@ class KeeperGame {
   _update() {
     this._keepers();
     this._particles();
-    if (this.phase === 'shooting') {
+    if (this.phase === 'shooting' || this.phase === 'saved') {
       this.ball.vx *= 0.991;
       this.ball.vy *= 0.991;
       this.ball.x  += this.ball.vx;
       this.ball.y  += this.ball.vy;
       this.ballAngle += Math.hypot(this.ball.vx, this.ball.vy) * 0.05;
-      this._bounds();
+      if (this.phase === 'shooting') {
+        this._bounds();
+      } else {
+        // Wall bounces during save animation so ball doesn't escape off-screen
+        const { bR, ball, H } = this;
+        if (ball.y - bR <= 0) { ball.y = bR;     ball.vy =  Math.abs(ball.vy); }
+        if (ball.y + bR >= H) { ball.y = H - bR; ball.vy = -Math.abs(ball.vy); }
+      }
     }
     if (this.msgFrames > 0 && --this.msgFrames === 0) this.message = null;
   }
@@ -140,42 +147,27 @@ class KeeperGame {
   _keepers() {
     const { gY, gH, kH, hk, ak } = this;
     const mn = gY, mx = gY + gH - kH;
-    const cl = v => Math.max(mn, Math.min(mx, v));
-
-    if (this.phase === 'ready' || this.phase === 'scored' || this.phase === 'missed') {
-      // Movimiento pong — rebota arriba y abajo
-      hk.y += hk.vy; if (hk.y <= mn) { hk.y = mn; hk.vy = Math.abs(hk.vy) + Math.random()*0.3; }
-                      if (hk.y >= mx) { hk.y = mx; hk.vy = -(Math.abs(hk.vy) + Math.random()*0.3); }
-      ak.y += ak.vy; if (ak.y <= mn) { ak.y = mn; ak.vy = Math.abs(ak.vy) + Math.random()*0.3; }
-                      if (ak.y >= mx) { ak.y = mx; ak.vy = -(Math.abs(ak.vy) + Math.random()*0.3); }
-
-    } else if (this.phase === 'shooting') {
-      const spd = 4.4;
-      const tgt = cl(this.ball.y - kH / 2);
-      if (this.ball.vx < 0) {
-        hk.y += Math.sign(tgt - hk.y) * Math.min(Math.abs(tgt - hk.y), spd);
-        ak.y  = cl(ak.y + ak.vy);
-      } else {
-        ak.y += Math.sign(tgt - ak.y) * Math.min(Math.abs(tgt - ak.y), spd);
-        hk.y  = cl(hk.y + hk.vy);
-      }
-    } else if (this.phase === 'saved') {
-      hk.y = Math.max(mn, Math.min(mx, hk.y + hk.vy * 1.6));
-      ak.y = Math.max(mn, Math.min(mx, ak.y + ak.vy * 1.6));
-    }
+    // Pong puro: sube y baja a velocidad constante, nunca sigue a la pelota
+    hk.y += hk.vy;
+    if (hk.y <= mn) { hk.y = mn; hk.vy =  Math.abs(hk.vy); }
+    if (hk.y >= mx) { hk.y = mx; hk.vy = -Math.abs(hk.vy); }
+    ak.y += ak.vy;
+    if (ak.y <= mn) { ak.y = mn; ak.vy =  Math.abs(ak.vy); }
+    if (ak.y >= mx) { ak.y = mx; ak.vy = -Math.abs(ak.vy); }
   }
 
   _bounds() {
     const { W, H, gY, gH, gD, bR, ball } = this;
 
+    // Usar radio de la pelota en el chequeo vertical del arco
     if (ball.x - bR <= gD) {
-      if (ball.y >= gY && ball.y <= gY + gH) {
+      if (ball.y + bR >= gY && ball.y - bR <= gY + gH) {
         this._hitKeeper(ball, this.hk) ? this._save(ball, 1) : this._goal('home');
       } else { this._miss(ball, 1); }
       return;
     }
     if (ball.x + bR >= W - gD) {
-      if (ball.y >= gY && ball.y <= gY + gH) {
+      if (ball.y + bR >= gY && ball.y - bR <= gY + gH) {
         this._hitKeeper(ball, this.ak) ? this._save(ball, -1) : this._goal('away');
       } else { this._miss(ball, -1); }
       return;
@@ -190,9 +182,8 @@ class KeeperGame {
   }
 
   _hitKeeper(ball, k) {
-    // Bloqueo vertical: el arquero cubre [k.y … k.y + kH]
-    // Añadimos bonus igual al radio de la pelota para hacerlo justo
-    return ball.y >= k.y - this.bR * 0.4 && ball.y <= k.y + this.kH + this.bR * 0.4;
+    // Overlap exacto círculo/rectángulo en eje Y
+    return ball.y + this.bR > k.y && ball.y - this.bR < k.y + this.kH;
   }
 
   _goal(team) {
@@ -203,8 +194,9 @@ class KeeperGame {
     setTimeout(() => this._rst(), 2100);
   }
   _save(ball, sign) {
-    ball.vx = sign * (Math.abs(ball.vx) * 0.55 + 2 + Math.random() * 3);
-    ball.vy = (Math.random() - 0.5) * 10;
+    // Rebota de vuelta hacia el campo
+    ball.vx = sign * (Math.abs(ball.vx) * 0.5 + 3);
+    ball.vy = (Math.random() - 0.5) * 8;
     this._msg('🧤  ¡ATAJADA!  Intentá de nuevo', 110, 'saved');
     setTimeout(() => this._rst(), 1800);
   }
