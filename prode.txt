@@ -1,0 +1,61 @@
+Desarrollar una "Polla" o "Prode" corporativo para el Mundial 2026 es una excelente estrategia de integración. A diferencia de las apps genéricas, una solución interna te permite personalizar las reglas y la estética.
+
+Aquí tienes el desglose de los requerimientos funcionales basados en las mejores prácticas del mercado, junto con las propuestas interactivas que solicitaste.
+
+1. Requerimientos Funcionales (Basados en Benchmark)
+
+Para que la web app sea exitosa, debe cubrir estas tres áreas críticas:
+
+
+
+A. Gestión de Usuarios y Competencia
+
+Autenticación Corporativa: Login con el correo de la empresa (Single Sign-On).
+
+Ligas Privadas: Clasificaciones por departamentos (ej. Ventas vs. IT) además del ranking global.
+
+Sistema de Puntos Dinámico: * 3 puntos por acertar resultado exacto.
+
+1 punto por acertar ganador/empate pero no el marcador.
+
+Bonos por "Goleador del Torneo" o "Campeón" (predicciones a largo plazo).
+
+Muro de "Banter" (Chat): Espacio para comentarios y bromas entre colegas tras cada partido.
+
+B. Visualización y Datos
+
+Calendario Oficial: Sincronización automática con la API de la FIFA para horarios y sedes.
+
+Resultados en Vivo: Actualización en tiempo real de los marcadores.
+
+Estadísticas de Pronóstico: Gráficos que muestren qué porcentaje de la oficina cree que ganará cada equipo (sabiduría de la masa).
+
+C. Notificaciones y Engagement
+
+Alertas Push/Email: Recordatorios 15 minutos antes de que cierre la ventana de apuesta de un partido.
+
+Resumen de la Jornada: Un boletín automático con los "Top Performers" del día en la empresa.
+
+2. Ideas Interactivas e Innovadoras
+
+Tu idea del "tiro al arco" es genial porque convierte la entrada de datos (que suele ser aburrida) en un mini-juego. Aquí te doy más detalles para esa idea y otras nuevas:
+
+
+
+La Cancha Interactiva (Tu idea mejorada)
+
+En lugar de escribir números, el usuario ve una cancha vertical.
+
+
+
+Mecánica: Hay un balón en el centro. Si arrastras el balón hacia el arco izquierdo, sumas goles para el Equipo A. Si lo arrastras al derecho, para el Equipo B.
+
+Efecto: Cada gol anotado activa un sonido de multitud o una animación de la bandera del país. Es mucho más satisfactorio que teclear un "2 - 1".
+
+
+
+Usar node js , archivos JSON como DB para evitar instalar una DB (pocos usuarios , menos de mil ) y server side rendering con templating , para evitar tener front y back.
+
+
+
+poner el foco en el diseño , realista , banderas reales de los equipos (estilo foto) , etc.

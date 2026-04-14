@@ -1,0 +1,106 @@
+<%
+const title = 'Admin Panel';
+const body = `
+<div class="admin-page">
+  <div class="page-header">
+    <h1>⚙️ Panel de Administración</h1>
+    <p>Carga resultados y gestiona el torneo</p>
+  </div>
+
+  ${success ? '<div class="alert alert-success">✅ Resultado guardado y puntos recalculados.</div>' : ''}
+
+  <!-- STATS RÁPIDAS -->
+  <div class="admin-stats">
+    <div class="admin-stat">
+      <div class="admin-stat-val">${matches.length}</div>
+      <div class="admin-stat-label">Partidos totales</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-val">${matches.filter(m => m.status === 'finished').length}</div>
+      <div class="admin-stat-label">Finalizados</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-val">${matches.filter(m => m.status === 'scheduled').length}</div>
+      <div class="admin-stat-label">Pendientes</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-val">${users.length}</div>
+      <div class="admin-stat-label">Participantes</div>
+    </div>
+  </div>
+
+  <!-- TABLA DE PARTIDOS -->
+  <div class="admin-table-wrapper">
+    <h2>Cargar / Actualizar Resultados</h2>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Grupo</th>
+          <th>Partido</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Resultado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+${matches.map(m => `
+        <tr class="${m.status === 'finished' ? 'row-finished' : ''}">
+          <td><span class="group-badge">G.${m.group}</span></td>
+          <td>
+            <div class="admin-match-teams">
+              <img src="https://flagcdn.com/w40/${m.homeFlag}.png" alt="${m.homeTeam}">
+              <span>${m.homeTeam}</span>
+              <span class="vs-mini">vs</span>
+              <span>${m.awayTeam}</span>
+              <img src="https://flagcdn.com/w40/${m.awayFlag}.png" alt="${m.awayTeam}">
+            </div>
+          </td>
+          <td class="date-cell">${h.formatDate(m.date)} ${h.formatTime(m.date)}</td>
+          <td>
+            <span class="status-badge status-${m.status}">
+              ${m.status === 'finished' ? '✅ Final' : m.status === 'live' ? '🔴 Vivo' : '⏳ Próx.'}
+            </span>
+          </td>
+          <td class="score-cell">
+            ${m.status === 'finished' ? `<strong>${m.homeScore} – ${m.awayScore}</strong>` : '— vs —'}
+          </td>
+          <td>
+            <form action="/admin/resultado" method="POST" class="result-form">
+              <input type="hidden" name="matchId" value="${m.id}">
+              <input type="number" name="homeScore" value="${m.homeScore !== null ? m.homeScore : ''}" min="0" max="20" placeholder="L" class="score-input">
+              <span>–</span>
+              <input type="number" name="awayScore" value="${m.awayScore !== null ? m.awayScore : ''}" min="0" max="20" placeholder="V" class="score-input">
+              <select name="status" class="status-select">
+                <option value="scheduled" ${m.status==='scheduled'?'selected':''}>Próximo</option>
+                <option value="live" ${m.status==='live'?'selected':''}>En vivo</option>
+                <option value="finished" ${m.status==='finished'?'selected':''}>Finalizado</option>
+              </select>
+              <button type="submit" class="btn-save">Guardar</button>
+            </form>
+          </td>
+        </tr>
+`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TOP USUARIOS -->
+  <div class="admin-users">
+    <h2>Participantes (${users.length})</h2>
+    <div class="admin-user-list">
+${users.slice(0, 20).map((u, i) => `
+      <div class="admin-user-row">
+        <span class="admin-rank">${i+1}</span>
+        <span class="admin-uname">${u.name}</span>
+        <span class="admin-udept">${u.department}</span>
+        <span class="admin-email">${u.email}</span>
+        <span class="admin-pts">${u.points} pts</span>
+      </div>
+`).join('')}
+    </div>
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { title, body }) %>

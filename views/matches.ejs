@@ -1,0 +1,119 @@
+<%
+const title = 'Partidos';
+const body = `
+<div class="page-header">
+  <h1>📅 Partidos — Fase de Grupos</h1>
+  <p>Selecciona un grupo y pronostica antes de que empiece cada partido</p>
+</div>
+
+<!-- SISTEMA DE PUNTOS -->
+<div class="scoring-banner">
+  <div class="scoring-item">
+    <span class="scoring-pts scoring-gold">3 pts</span>
+    <span>Resultado exacto</span>
+  </div>
+  <div class="scoring-divider">|</div>
+  <div class="scoring-item">
+    <span class="scoring-pts scoring-silver">1 pt</span>
+    <span>Ganador / Empate correcto</span>
+  </div>
+  <div class="scoring-divider">|</div>
+  <div class="scoring-item">
+    <span class="scoring-pts scoring-zero">0 pts</span>
+    <span>Sin acierto</span>
+  </div>
+</div>
+
+<!-- TABS GRUPOS -->
+<div class="group-tabs-wrapper">
+  <div class="group-tabs">
+${allGroups.map(g => `
+    <a href="/partidos?grupo=${g}" class="group-tab ${g === selectedGroup ? 'active' : ''}">
+      Grupo ${g}
+    </a>`).join('')}
+  </div>
+</div>
+
+<!-- PARTIDOS DEL GRUPO -->
+<div class="matches-container">
+  <div class="group-title">
+    <h2>Grupo ${selectedGroup}</h2>
+    <div class="group-teams-chips">
+${(groups[selectedGroup] || []).reduce((teams, m) => {
+  if (!teams.includes(m.homeTeam)) teams.push(m.homeTeam);
+  if (!teams.includes(m.awayTeam)) teams.push(m.awayTeam);
+  return teams;
+}, []).map((t, i) => {
+  const match = (groups[selectedGroup] || []).find(m => m.homeTeam === t || m.awayTeam === t);
+  const flag = match ? (match.homeTeam === t ? match.homeFlag : match.awayFlag) : '';
+  return `<span class="team-chip"><img src="https://flagcdn.com/w40/${flag}.png" alt=""> ${t}</span>`;
+}).join('')}
+    </div>
+  </div>
+
+  <div class="matchday-sections">
+${[1,2,3].map(md => {
+  const mdMatches = (groups[selectedGroup] || []).filter(m => m.matchday === md);
+  if (!mdMatches.length) return '';
+  return `
+  <div class="matchday-block">
+    <div class="matchday-label">Jornada ${md}</div>
+    <div class="match-cards">
+${mdMatches.map(m => {
+  const pred = m.prediction;
+  const finished = m.status === 'finished';
+  const pts = pred ? pred.points : null;
+  let cardClass = 'match-card';
+  if (finished && pts === 3) cardClass += ' card-exact';
+  else if (finished && pts === 1) cardClass += ' card-partial';
+  else if (finished && pts === 0) cardClass += ' card-miss';
+  else if (pred) cardClass += ' card-predicted';
+
+  return `
+      <div class="${cardClass}">
+        <div class="card-status">
+          ${finished ? '<span class="status-finished">Finalizado</span>' : m.status === 'live' ? '<span class="status-live">● En vivo</span>' : `<span class="status-scheduled">${h.formatDate(m.date)} · ${h.formatTime(m.date)}</span>`}
+          <span class="card-venue">${m.venue.split(',').pop().trim()}</span>
+        </div>
+
+        <div class="card-teams">
+          <div class="card-team">
+            <img src="https://flagcdn.com/w160/${m.homeFlag}.png" alt="${m.homeTeam}" class="flag-img">
+            <span class="team-name">${m.homeTeam}</span>
+          </div>
+
+          <div class="card-center">
+            ${finished
+              ? `<div class="final-score">${m.homeScore}<span>–</span>${m.awayScore}</div>`
+              : pred
+                ? `<div class="pred-display"><span>${pred.homeScore}</span><span class="vs-sep">–</span><span>${pred.awayScore}</span></div>`
+                : `<div class="card-vs">VS</div>`
+            }
+            ${finished && pred ? `
+              <div class="pts-result ${pts===3?'pts-gold':pts===1?'pts-silver':'pts-zero'}">
+                ${pts === 3 ? '🎯 +3 pts' : pts === 1 ? '✅ +1 pt' : '❌ 0 pts'}
+              </div>` : ''
+            }
+          </div>
+
+          <div class="card-team right">
+            <img src="https://flagcdn.com/w160/${m.awayFlag}.png" alt="${m.awayTeam}" class="flag-img">
+            <span class="team-name">${m.awayTeam}</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          ${pred ? `<div class="your-pred">Tu pronóstico: ${pred.homeScore} – ${pred.awayScore}</div>` : ''}
+          ${m.canPredict ? `<a href="/pronosticar/${m.id}" class="btn-predict-full">${pred ? '✏️ Editar pronóstico' : '⚽ Pronosticar'}</a>` : ''}
+          ${!m.canPredict && !pred && !finished ? `<div class="pred-closed">Pronóstico cerrado</div>` : ''}
+        </div>
+      </div>
+`;}).join('')}
+    </div>
+  </div>
+`;}).join('')}
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { title, body }) %>

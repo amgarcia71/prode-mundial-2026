@@ -1,0 +1,135 @@
+<%
+const title = 'Dashboard';
+const body = `
+<div class="dashboard">
+
+  <!-- HERO STATS -->
+  <section class="hero-stats">
+    <div class="hero-welcome">
+      <h1>¡Hola, <strong>${user.name.split(' ')[0]}</strong>! 👋</h1>
+      <p>${user.department} · Mundial FIFA 2026</p>
+    </div>
+    <div class="hero-cards">
+      <div class="stat-card stat-rank">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-value">#${user.rank}</div>
+        <div class="stat-label">Tu posición</div>
+      </div>
+      <div class="stat-card stat-pts">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-value">${user.points}</div>
+        <div class="stat-label">Puntos totales</div>
+      </div>
+      <div class="stat-card stat-exact">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value">${stats.exact}</div>
+        <div class="stat-label">Exactos (×3)</div>
+      </div>
+      <div class="stat-card stat-partial">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value">${stats.partial}</div>
+        <div class="stat-label">Acertados (×1)</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="dashboard-grid">
+
+    <!-- PRÓXIMOS PARTIDOS -->
+    <section class="dash-section">
+      <div class="section-header">
+        <h2>📅 Próximos partidos</h2>
+        <a href="/partidos" class="btn-link">Ver todos →</a>
+      </div>
+      <div class="match-list">
+${upcoming.map(m => `
+        <div class="match-row ${m.prediction ? 'predicted' : ''}">
+          <div class="match-teams">
+            <div class="team-mini">
+              <img src="https://flagcdn.com/w40/${m.homeFlag}.png" alt="${m.homeTeam}" class="flag-mini">
+              <span>${m.homeTeam}</span>
+            </div>
+            <div class="match-vs-info">
+              <div class="match-group">Grupo ${m.group}</div>
+              <div class="match-vs">VS</div>
+              <div class="match-date-small">${h.formatDate(m.date)} ${h.formatTime(m.date)}</div>
+            </div>
+            <div class="team-mini right">
+              <span>${m.awayTeam}</span>
+              <img src="https://flagcdn.com/w40/${m.awayFlag}.png" alt="${m.awayTeam}" class="flag-mini">
+            </div>
+          </div>
+          <div class="match-action">
+            ${m.prediction ? `
+              <div class="pred-badge">
+                <span class="pred-score">${m.prediction.homeScore} – ${m.prediction.awayScore}</span>
+                <span class="pred-edit">✏️</span>
+              </div>
+            ` : ''}
+            ${m.canPredict ? `<a href="/pronosticar/${m.id}" class="btn-predict">Pronosticar</a>` : ''}
+          </div>
+        </div>
+`).join('')}
+      </div>
+    </section>
+
+    <!-- MINI CLASIFICACIÓN -->
+    <section class="dash-section">
+      <div class="section-header">
+        <h2>🥇 Top 5</h2>
+        <a href="/clasificacion" class="btn-link">Ver ranking →</a>
+      </div>
+      <div class="mini-ranking">
+${top5.map(u => `
+        <div class="rank-row ${u.id === user.id ? 'rank-me' : ''}">
+          <div class="rank-pos rank-pos-${u.rank <= 3 ? u.rank : 'rest'}">${u.rank}</div>
+          <div class="rank-avatar">${u.name.charAt(0)}</div>
+          <div class="rank-info">
+            <div class="rank-name">${u.name.split(' ')[0]} ${u.name.split(' ')[1] || ''} ${u.id === user.id ? '(tú)' : ''}</div>
+            <div class="rank-dept">${u.department}</div>
+          </div>
+          <div class="rank-pts">${u.points} <span>pts</span></div>
+        </div>
+`).join('')}
+      </div>
+    </section>
+
+    <!-- RESULTADOS RECIENTES -->
+    ${recentResults.length > 0 ? `
+    <section class="dash-section dash-full">
+      <div class="section-header">
+        <h2>📊 Resultados recientes</h2>
+      </div>
+      <div class="results-grid">
+${recentResults.map(m => {
+  const pred = m.prediction;
+  const pts = pred ? pred.points : null;
+  return `
+        <div class="result-card ${pts === 3 ? 'res-exact' : pts === 1 ? 'res-partial' : pts === 0 ? 'res-miss' : ''}">
+          <div class="res-group">Grupo ${m.group}</div>
+          <div class="res-teams">
+            <div class="res-team">
+              <img src="https://flagcdn.com/w80/${m.homeFlag}.png" alt="${m.homeTeam}">
+              <span>${m.homeTeam}</span>
+            </div>
+            <div class="res-score-block">
+              <div class="res-score">${m.homeScore} – ${m.awayScore}</div>
+              ${pred ? `<div class="res-pred">Tu pron: ${pred.homeScore}–${pred.awayScore}</div>` : '<div class="res-pred">Sin pronóstico</div>'}
+              ${pts !== null ? `<div class="res-pts ${pts === 3 ? 'pts-gold' : pts === 1 ? 'pts-silver' : 'pts-zero'}">+${pts} pts</div>` : ''}
+            </div>
+            <div class="res-team">
+              <img src="https://flagcdn.com/w80/${m.awayFlag}.png" alt="${m.awayTeam}">
+              <span>${m.awayTeam}</span>
+            </div>
+          </div>
+        </div>
+`;}).join('')}
+      </div>
+    </section>
+    ` : ''}
+
+  </div><!-- .dashboard-grid -->
+</div><!-- .dashboard -->
+`;
+%>
+<%- include('layout', { title, body }) %>

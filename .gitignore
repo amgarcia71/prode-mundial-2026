@@ -1,0 +1,11 @@
+node_modules/
+.env
+.DS_Store
+*.log
+npm-debug.log*
+
+# Data files con contraseñas — en producción se genera con npm run seed
+# Descomenta si NO querés subir los datos de demo:
+# data/users.json
+# data/predictions.json
+# data/chat.json

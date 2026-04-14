@@ -1,0 +1,46 @@
+<%
+const title = 'Banter Wall';
+const body = `
+<div class="chat-page">
+  <div class="page-header">
+    <h1>💬 Banter Wall</h1>
+    <p>El espacio para el trashtalk corporativo del Mundial ⚽</p>
+  </div>
+
+  <!-- FORM -->
+  <div class="chat-input-card">
+    <div class="chat-avatar-me">${user.name.charAt(0)}</div>
+    <form action="/banter" method="POST" class="chat-form">
+      <input
+        type="text"
+        name="message"
+        placeholder="¿Qué opinas? Comenta, provoca, celebra... 👀"
+        maxlength="500"
+        autocomplete="off"
+        required
+      >
+      <button type="submit" class="btn-chat-send">Enviar</button>
+    </form>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="chat-feed">
+${messages.length === 0 ? '<div class="chat-empty">Sé el primero en escribir algo... ¿quién va a ganar el Mundial? 🏆</div>' : ''}
+${messages.map(m => `
+    <div class="chat-bubble ${m.isOwn ? 'bubble-own' : ''}">
+      <div class="bubble-avatar ${m.isOwn ? 'avatar-own' : ''}">${m.user.name.charAt(0)}</div>
+      <div class="bubble-content">
+        <div class="bubble-header">
+          <span class="bubble-name">${m.user.name}</span>
+          <span class="bubble-dept">${m.user.department}</span>
+          <span class="bubble-time">${h.timeAgo(m.createdAt)}</span>
+        </div>
+        <div class="bubble-text">${m.message.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      </div>
+    </div>
+`).join('')}
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { title, body }) %>

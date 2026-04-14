@@ -1,0 +1,104 @@
+<%
+const title = 'Pronosticar';
+const extraScript = `<script src="/js/predict.js"></script>`;
+const body = `
+<div class="predict-page">
+
+  <div class="predict-header">
+    <a href="/partidos?grupo=${match.group}" class="back-link">← Grupo ${match.group}</a>
+    <div class="predict-meta">
+      <span class="predict-phase">${match.phase || 'Fase de Grupos'} · Jornada ${match.matchday}</span>
+      <span class="predict-when">${h.formatDateFull(match.date)} · ${h.formatTime(match.date)}</span>
+      <span class="predict-venue">${match.venue}</span>
+    </div>
+  </div>
+
+  <!-- SCOREBOARD ENCIMA DEL CANVAS -->
+  <div class="scoreboard">
+    <div class="sb-team home">
+      <img src="https://flagcdn.com/w160/${match.homeFlag}.png" alt="${match.homeTeam}" class="sb-flag">
+      <span class="sb-name">${match.homeTeam}</span>
+    </div>
+    <div class="sb-center">
+      <div class="sb-score" id="gameScoreDisplay">${prediction ? prediction.homeScore : 0} – ${prediction ? prediction.awayScore : 0}</div>
+      <div class="sb-label">tu pronóstico</div>
+    </div>
+    <div class="sb-team away">
+      <img src="https://flagcdn.com/w160/${match.awayFlag}.png" alt="${match.awayTeam}" class="sb-flag">
+      <span class="sb-name">${match.awayTeam}</span>
+    </div>
+  </div>
+
+  <!-- CANVAS DEL JUEGO -->
+  <div class="canvas-wrapper" id="canvasWrapper">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <div class="game-instructions">
+    <span>🧤 El arquero se mueve solo — apuntá a las esquinas para ganarle</span>
+    <span>· Cada gol suma 1 al marcador · Podés seguir pateando para ajustar el pronóstico</span>
+  </div>
+
+  <!-- SABIDURÍA DE LA MASA -->
+  <div class="wisdom-card">
+    <h3>📊 La oficina pronostica (${wisdom.count} votos)</h3>
+    <div class="wisdom-bars">
+      <div class="wisdom-item">
+        <div class="wisdom-label">
+          <img src="https://flagcdn.com/w40/${match.homeFlag}.png" alt="">
+          <span>${match.homeTeam}</span>
+        </div>
+        <div class="wisdom-bar-track"><div class="wisdom-bar home-bar" style="width:${wisdom.home}%"></div></div>
+        <div class="wisdom-pct">${wisdom.home}%</div>
+      </div>
+      <div class="wisdom-item">
+        <div class="wisdom-label"><span class="wisdom-draw">Empate</span></div>
+        <div class="wisdom-bar-track"><div class="wisdom-bar draw-bar" style="width:${wisdom.draw}%"></div></div>
+        <div class="wisdom-pct">${wisdom.draw}%</div>
+      </div>
+      <div class="wisdom-item">
+        <div class="wisdom-label">
+          <img src="https://flagcdn.com/w40/${match.awayFlag}.png" alt="">
+          <span>${match.awayTeam}</span>
+        </div>
+        <div class="wisdom-bar-track"><div class="wisdom-bar away-bar" style="width:${wisdom.away}%"></div></div>
+        <div class="wisdom-pct">${wisdom.away}%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM -->
+  <form action="/pronosticar/${match.id}" method="POST" class="predict-confirm-form">
+    <input type="hidden" name="homeScore" id="homeScoreInput" value="${prediction ? prediction.homeScore : 0}">
+    <input type="hidden" name="awayScore" id="awayScoreInput" value="${prediction ? prediction.awayScore : 0}">
+    <div class="confirm-row">
+      <div class="confirm-preview">
+        <img src="https://flagcdn.com/w40/${match.homeFlag}.png" class="confirm-flag">
+        <span id="confirmHome">${prediction ? prediction.homeScore : 0}</span>
+        <span class="confirm-sep">–</span>
+        <span id="confirmAway">${prediction ? prediction.awayScore : 0}</span>
+        <img src="https://flagcdn.com/w40/${match.awayFlag}.png" class="confirm-flag">
+      </div>
+      <button type="submit" class="btn-primary btn-confirm">
+        ${prediction ? '✏️ Actualizar pronóstico' : '⚽ Confirmar pronóstico'}
+      </button>
+    </div>
+    <div class="scoring-hint">
+      <span class="hint-exact">🎯 Resultado exacto = <strong>3 pts</strong></span>
+      <span class="hint-partial">✅ Ganador / empate = <strong>1 pt</strong></span>
+    </div>
+  </form>
+
+  <!-- Config para el JS -->
+  <script>
+    window.GAME_CONFIG = {
+      home: { name: "${match.homeTeam.replace(/"/g,'&quot;')}", flag: "${match.homeFlag}" },
+      away: { name: "${match.awayTeam.replace(/"/g,'&quot;')}", flag: "${match.awayFlag}" },
+      initialHome: ${prediction ? prediction.homeScore : 0},
+      initialAway: ${prediction ? prediction.awayScore : 0}
+    };
+  </script>
+</div>
+`;
+%>
+<%- include('layout', { title, body, extraScript }) %>

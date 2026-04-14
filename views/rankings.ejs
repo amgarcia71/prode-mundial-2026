@@ -1,0 +1,91 @@
+<%
+const title = 'Clasificación';
+const body = `
+<div class="page-header">
+  <h1>🏆 Clasificación</h1>
+  <p>Ranking global de pronósticos · Mundial FIFA 2026</p>
+</div>
+
+<!-- FILTROS -->
+<div class="ranking-filters">
+  <a href="/clasificacion" class="filter-btn ${!selectedDept ? 'active' : ''}">Todos</a>
+  ${departments.map(d => `
+  <a href="/clasificacion?dpto=${encodeURIComponent(d)}" class="filter-btn ${selectedDept === d ? 'active' : ''}">${d}</a>
+  `).join('')}
+</div>
+
+<!-- PODIO (TOP 3) -->
+${rankings.length >= 3 ? `
+<div class="podium">
+  <div class="podium-slot podium-2">
+    <div class="podium-avatar">${rankings[1].name.charAt(0)}</div>
+    <div class="podium-name">${rankings[1].name.split(' ')[0]}</div>
+    <div class="podium-dept">${rankings[1].department}</div>
+    <div class="podium-pts">${rankings[1].points} pts</div>
+    <div class="podium-block p2">🥈<br>2°</div>
+  </div>
+  <div class="podium-slot podium-1">
+    <div class="podium-crown">👑</div>
+    <div class="podium-avatar podium-winner">${rankings[0].name.charAt(0)}</div>
+    <div class="podium-name">${rankings[0].name.split(' ')[0]}</div>
+    <div class="podium-dept">${rankings[0].department}</div>
+    <div class="podium-pts">${rankings[0].points} pts</div>
+    <div class="podium-block p1">🥇<br>1°</div>
+  </div>
+  <div class="podium-slot podium-3">
+    <div class="podium-avatar">${rankings[2].name.charAt(0)}</div>
+    <div class="podium-name">${rankings[2].name.split(' ')[0]}</div>
+    <div class="podium-dept">${rankings[2].department}</div>
+    <div class="podium-pts">${rankings[2].points} pts</div>
+    <div class="podium-block p3">🥉<br>3°</div>
+  </div>
+</div>
+` : ''}
+
+<!-- TABLA COMPLETA -->
+<div class="ranking-table-wrapper">
+  <table class="ranking-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Jugador</th>
+        <th>Dpto.</th>
+        <th>🎯 Exactos</th>
+        <th>✅ Parciales</th>
+        <th>Puntos</th>
+      </tr>
+    </thead>
+    <tbody>
+${rankings.map(u => `
+      <tr class="${u.id === currentUser.id ? 'rank-highlight' : ''} ${u.rank <= 3 ? 'rank-top' : ''}">
+        <td class="rank-pos-cell">
+          ${u.rank === 1 ? '🥇' : u.rank === 2 ? '🥈' : u.rank === 3 ? '🥉' : u.rank}
+        </td>
+        <td class="rank-player-cell">
+          <div class="rank-avatar-sm">${u.name.charAt(0)}</div>
+          <div>
+            <div class="rank-full-name">${u.name} ${u.id === currentUser.id ? '<span class="you-tag">tú</span>' : ''}</div>
+          </div>
+        </td>
+        <td><span class="dept-tag">${u.department}</span></td>
+        <td class="num-cell">${u.exactPredictions || 0}</td>
+        <td class="num-cell">${u.partialPredictions || 0}</td>
+        <td class="pts-cell"><strong>${u.points}</strong></td>
+      </tr>
+`).join('')}
+    </tbody>
+  </table>
+  ${rankings.length === 0 ? '<div class="empty-state">No hay jugadores aún en este departamento</div>' : ''}
+</div>
+
+<div class="scoring-hint-box">
+  <h3>Sistema de puntos</h3>
+  <div class="hint-items">
+    <div class="hint-item"><span class="hint-gold">3 pts</span> Resultado exacto (ej: 2-1 acertado)</div>
+    <div class="hint-item"><span class="hint-silver">1 pt</span> Ganador o empate correcto</div>
+    <div class="hint-item"><span class="hint-zero">0 pts</span> Pronóstico incorrecto</div>
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { title, body }) %>

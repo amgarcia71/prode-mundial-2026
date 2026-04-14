@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRODE 2026 — Ingresa</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-body">
+  <div class="auth-bg">
+    <div class="auth-particles">
+      <span>⚽</span><span>🏆</span><span>⚽</span><span>🥅</span><span>⚽</span>
+    </div>
+  </div>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-ball">⚽</div>
+        <h1>PRODE <span>2026</span></h1>
+        <p>Mundial FIFA · Pronósticos Corporativos</p>
+      </div>
+
+      <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form action="/login" method="POST" class="auth-form">
+        <div class="form-group">
+          <label>Correo corporativo</label>
+          <input type="email" name="email" placeholder="tu@empresa.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-primary btn-full">Entrar al Prode ⚽</button>
+      </form>
+
+      <div class="auth-divider">¿Aún no tienes cuenta?</div>
+      <a href="/registro" class="btn-secondary btn-full">Registrarse</a>
+
+      <div class="auth-demo">
+        <strong>Demo:</strong> admin@empresa.com / admin123
+      </div>
+    </div>
+
+    <div class="auth-banner">
+      <img src="https://flagcdn.com/w160/us.png" alt="">
+      <img src="https://flagcdn.com/w160/mx.png" alt="">
+      <img src="https://flagcdn.com/w160/ca.png" alt="">
+      <div class="auth-banner-text">
+        <h2>USA · México · Canadá</h2>
+        <p>48 equipos · 12 grupos · 104 partidos</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

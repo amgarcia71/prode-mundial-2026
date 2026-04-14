@@ -1,0 +1,98 @@
+[
+  {
+    "id": "93ce295d-2cf7-4bf7-adf2-6af0bd7f7619",
+    "name": "Admin",
+    "email": "admin@empresa.com",
+    "password": "$2a$10$p6uzCmQzNmdkvMiWjPzMfuaffsvJxKqt2R4SKWmduGqkwSLvfEQ7a",
+    "department": "IT",
+    "isAdmin": true,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  },
+  {
+    "id": "aec8ce59-1be5-4c91-a551-ae7c250c04a9",
+    "name": "Carlos Ruiz",
+    "email": "demo@empresa.com",
+    "password": "$2a$10$7O.Bggyl/htavWrzacDibu7hnqaXNFzHx.Isfd1KMhxHjS5f7tguS",
+    "department": "Ventas",
+    "isAdmin": false,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  },
+  {
+    "id": "27e24333-68e5-47f7-a378-75ed3ac96ea9",
+    "name": "Ana García",
+    "email": "ana@empresa.com",
+    "password": "$2a$10$AwKQbquX.yZLy6LHRfgWku6OlwldIuvRGyIuOC8X1IO4QzvPivd.u",
+    "department": "Marketing",
+    "isAdmin": false,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  },
+  {
+    "id": "8aa32150-3de9-467a-9042-ac6fc5d76df8",
+    "name": "Luis Pérez",
+    "email": "luis@empresa.com",
+    "password": "$2a$10$Y5uhf9y5XK7M2Qis4rIf1.ywgUbEDmcXZZ0OwroYBMqMap9KI31mS",
+    "department": "Finanzas",
+    "isAdmin": false,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  },
+  {
+    "id": "8d3346ee-5a09-4f7b-8572-917137959958",
+    "name": "María López",
+    "email": "maria@empresa.com",
+    "password": "$2a$10$LYABUtnSTOmRvmuU.Tnu7O2LJyVD1BAfov8oTYI4TETIcAvhR0YtK",
+    "department": "RH",
+    "isAdmin": false,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  },
+  {
+    "id": "07caef32-a978-4b41-b0e4-500dec4bbb10",
+    "name": "José Hernández",
+    "email": "jose@empresa.com",
+    "password": "$2a$10$fFfoPNm8j/3bML7Ci7dt0e7EPAmkseQHRYUMSihJLcXb6dhZxU8R2",
+    "department": "IT",
+    "isAdmin": false,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  },
+  {
+    "id": "6e7b1e56-aaa2-43e5-af03-48bda7cd8bfe",
+    "name": "Laura Martínez",
+    "email": "laura@empresa.com",
+    "password": "$2a$10$AvojVtMqvHrc2iF1KW4lfusklYlp9xXIjYkIvBZA3tGBqYtYml9zS",
+    "department": "Operaciones",
+    "isAdmin": false,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  },
+  {
+    "id": "db80b9ba-83cb-4fd7-923e-27420b9c59fa",
+    "name": "Roberto Silva",
+    "email": "roberto@empresa.com",
+    "password": "$2a$10$A4t0aB/Cdr8c51Z9CYOLge4kKJORKNI9Q7iPeSn3gEB67X2OSXfEO",
+    "department": "Ventas",
+    "isAdmin": false,
+    "points": 0,
+    "exactPredictions": 0,
+    "partialPredictions": 0,
+    "createdAt": "2026-04-14T03:35:50.889Z"
+  }
+]
