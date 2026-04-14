@@ -162,13 +162,13 @@ class KeeperGame {
     // Usar radio de la pelota en el chequeo vertical del arco
     if (ball.x - bR <= gD) {
       if (ball.y + bR >= gY && ball.y - bR <= gY + gH) {
-        this._hitKeeper(ball, this.hk) ? this._save(ball, 1) : this._goal('home');
+        this._hitKeeper(ball, this.hk) ? this._save(ball, 1) : this._goal('away');
       } else { this._miss(ball, 1); }
       return;
     }
     if (ball.x + bR >= W - gD) {
       if (ball.y + bR >= gY && ball.y - bR <= gY + gH) {
-        this._hitKeeper(ball, this.ak) ? this._save(ball, -1) : this._goal('away');
+        this._hitKeeper(ball, this.ak) ? this._save(ball, -1) : this._goal('home');
       } else { this._miss(ball, -1); }
       return;
     }
