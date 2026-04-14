@@ -61,12 +61,12 @@ class KeeperGame {
 
   _metrics() {
     const { W, H } = this;
-    // Goal dimensions — arco bien alto y profundo para que el arquero sea visible
-    this.gD = Math.round(Math.min(72, W * 0.10));   // profundidad del arco (más ancho = más red)
-    this.gH = Math.round(H * 0.78);                  // altura del arco (casi toda la pantalla)
-    this.gY = Math.round((H - this.gH) / 2);         // top Y del arco
+    // Goal dimensions — arco cubre todo el alto del canvas
+    this.gD = Math.round(Math.min(72, W * 0.10));   // profundidad del arco
+    this.gH = H;                                      // arco = altura total del canvas
+    this.gY = 0;                                      // empieza en el tope
 
-    // Arquero — ocupa ~16 % del alto del arco (1/3 del tamaño anterior)
+    // Arquero — ocupa ~16 % del alto del arco
     this.kH = Math.round(this.gH * 0.16);
     this.kW = Math.max(10, Math.round(W * 0.013));   // ancho del cuerpo
 
@@ -159,17 +159,13 @@ class KeeperGame {
   _bounds() {
     const { W, H, gY, gH, gD, bR, ball } = this;
 
-    // Usar radio de la pelota en el chequeo vertical del arco
+    // Cualquier tiro que llega a la línea de gol es gol o atajada (no hay "afuera")
     if (ball.x - bR <= gD) {
-      if (ball.y + bR >= gY && ball.y - bR <= gY + gH) {
-        this._hitKeeper(ball, this.hk) ? this._save(ball, 1) : this._goal('away');
-      } else { this._miss(ball, 1); }
+      this._hitKeeper(ball, this.hk) ? this._save(ball, 1) : this._goal('away');
       return;
     }
     if (ball.x + bR >= W - gD) {
-      if (ball.y + bR >= gY && ball.y - bR <= gY + gH) {
-        this._hitKeeper(ball, this.ak) ? this._save(ball, -1) : this._goal('home');
-      } else { this._miss(ball, -1); }
+      this._hitKeeper(ball, this.ak) ? this._save(ball, -1) : this._goal('home');
       return;
     }
     if (ball.y - bR <= 0) { ball.y = bR; ball.vy =  Math.abs(ball.vy) * 0.7; }
