@@ -206,7 +206,7 @@ class KeeperGame {
     ball.vx = sign * (Math.abs(ball.vx) * 0.55 + 2 + Math.random() * 3);
     ball.vy = (Math.random() - 0.5) * 10;
     this._msg('🧤  ¡ATAJADA!  Intentá de nuevo', 110, 'saved');
-    setTimeout(() => { this.phase = 'ready'; this.message = null; }, 1700);
+    setTimeout(() => this._rst(), 1800);
   }
   _miss(ball, sign) {
     ball.vx = sign * Math.abs(ball.vx) * 0.4;
@@ -470,26 +470,30 @@ class KeeperGame {
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.beginPath(); ctx.ellipse(x+2, y+bR*0.65, bR*0.76, bR*0.28, 0, 0, Math.PI*2); ctx.fill();
 
-    ctx.save(); ctx.translate(x, y); ctx.rotate(this.ballAngle);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(this.ballAngle);
 
-    ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(255,255,255,0.5)'; ctx.shadowBlur = 8;
+    // Clip circular ANTES de dibujar — sólo afecta dentro del save/restore
+    ctx.beginPath(); ctx.arc(0, 0, bR, 0, Math.PI*2); ctx.clip();
+
+    // Pelota blanca
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(255,255,255,0.5)'; ctx.shadowBlur = 8;
     ctx.beginPath(); ctx.arc(0, 0, bR, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Manchas negras
+    // Manchas negras (quedan clippeadas al círculo)
     ctx.fillStyle = '#111';
     [[0,0],[bR*.48,-bR*.48],[-bR*.48,-bR*.48],[bR*.48,bR*.48],[-bR*.48,bR*.48]].forEach(([px,py]) => {
       ctx.beginPath(); ctx.arc(px, py, bR*0.23, 0, Math.PI*2); ctx.fill();
     });
-    // Clip circular
-    ctx.globalCompositeOperation = 'destination-in';
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, bR, 0, Math.PI*2); ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
 
     // Brillo
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.beginPath(); ctx.ellipse(-bR*.3, -bR*.32, bR*.22, bR*.14, -Math.PI/4, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
+
+    ctx.restore(); // remueve el clip — todo lo que viene después dibuja sobre el canvas entero
 
     // Anillo pulsante en idle
     if (this.phase === 'ready' && !this.drag) {
