@@ -242,8 +242,8 @@ class KeeperGame {
     const { ctx, W, H } = this;
     ctx.clearRect(0, 0, W, H);
     this._field();
-    this._goal('left');
-    this._goal('right');
+    this._net('left');
+    this._net('right');
     this._drawParticles();
     // Arqueros: dibujados DELANTE de la red
     this._keeper(this.hk, this.homeColor, this.homeImg, 'left');
@@ -274,7 +274,7 @@ class KeeperGame {
     ctx.strokeRect(W-this.gD-pW, pY, pW, pH);
   }
 
-  _goal(side) {
+  _net(side) {
     const { ctx, W, H, gD, gH, gY } = this;
     const isL = side === 'left';
     const x    = isL ? 0 : W - gD;
