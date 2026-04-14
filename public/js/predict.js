@@ -1,133 +1,122 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  PRODE 2026 — Cancha interactiva con arquero Pong
-//  Arrastrá la pelota hacia los arcos para pronosticar goles.
-//  El arquero se mueve solo; si te ataja, reiniciás la pelota.
+//  PRODE 2026 — Cancha interactiva · Arquero estilo futbolito
+//  Vista frontal del arco. El arquero sube y baja cubriendo el palo.
+//  Arrastrá la pelota hacia un arco para pronosticar el gol.
 // ═══════════════════════════════════════════════════════════════════════
 
 class KeeperGame {
   constructor(cfg) {
-    this.canvas  = document.getElementById('gameCanvas');
-    this.ctx     = this.canvas.getContext('2d');
-    this.home    = cfg.home;   // { name, flag }
-    this.away    = cfg.away;
-    this.score   = { home: cfg.initialHome || 0, away: cfg.initialAway || 0 };
+    this.canvas = document.getElementById('gameCanvas');
+    this.ctx    = this.canvas.getContext('2d');
+    this.home   = cfg.home;
+    this.away   = cfg.away;
+    this.score  = { home: cfg.initialHome || 0, away: cfg.initialAway || 0 };
 
-    // Pre-cargar banderas
-    this.homeImg = this._loadImg(`https://flagcdn.com/w160/${cfg.home.flag}.png`);
-    this.awayImg = this._loadImg(`https://flagcdn.com/w160/${cfg.away.flag}.png`);
+    this.homeImg = this._img(`https://flagcdn.com/w160/${cfg.home.flag}.png`);
+    this.awayImg = this._img(`https://flagcdn.com/w160/${cfg.away.flag}.png`);
 
-    // Colores de arquero basados en nombre del equipo
-    this.homeColor = this._teamColor(cfg.home.name);
-    this.awayColor = this._teamColor(cfg.away.name, 180);
+    // Colores de camiseta de cada arquero (basado en nombre del equipo)
+    this.homeColor = this._teamHue(cfg.home.name, 0);
+    this.awayColor = this._teamHue(cfg.away.name, 160);
 
     this.particles = [];
-    this.phase     = 'ready'; // ready | shooting | scored | saved | missed
+    this.phase     = 'ready';
     this.message   = null;
-    this.msgTimer  = 0;
+    this.msgFrames = 0;
     this.ballAngle = 0;
-    this.drag      = null;
-    this.dragCur   = null;
+    this.drag = null;
+    this.dragCur = null;
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
-    this._setupInput();
+    this._input();
     this._syncUI();
-    this._loop();
+    requestAnimationFrame(() => this._loop());
   }
 
-  // ── INIT ────────────────────────────────────────────────────────────────
+  // ── SETUP ───────────────────────────────────────────────────────────────
 
-  resize() {
-    const wrapper = document.getElementById('canvasWrapper');
-    const W = wrapper ? wrapper.offsetWidth : 700;
-    const H = Math.max(200, Math.min(300, W * 0.36));
-    this.canvas.width  = this.W = W;
-    this.canvas.height = this.H = H;
-    this._initMetrics();
-    this._resetBallPos();
+  _img(src) {
+    const i = new Image();
+    i.crossOrigin = 'anonymous';
+    i.src = src;
+    return i;
   }
 
-  _initMetrics() {
-    const { W, H } = this;
-    this.gD  = Math.round(Math.min(68, W * 0.09));  // goal depth
-    this.gH  = Math.round(H * 0.56);                // goal height
-    this.gY  = Math.round((H - this.gH) / 2);       // goal top Y
-    this.kW  = Math.max(13, Math.round(W * 0.021)); // keeper width
-    this.kH  = Math.round(this.gH * 0.28);          // keeper height
-    this.bR  = Math.max(11, Math.round(H * 0.044)); // ball radius
-
-    if (!this.hk) this.hk = { y: H/2 - this.kH/2, vy: 2.4 };
-    if (!this.ak) this.ak = { y: H/2 - this.kH/2, vy: -2.1 };
-
-    // Keeper x positions (inside goal mouth)
-    this.hk.x = this.gD - this.kW - 5;
-    this.ak.x = W - this.gD + 5;
-  }
-
-  _resetBallPos() {
-    if (!this.ball) this.ball = { x: 0, y: 0, vx: 0, vy: 0 };
-    this.ball.x  = this.W / 2;
-    this.ball.y  = this.H / 2;
-    this.ball.vx = 0;
-    this.ball.vy = 0;
-  }
-
-  _loadImg(src) {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = src;
-    return img;
-  }
-
-  _teamColor(name, offset = 0) {
+  _teamHue(name, offset) {
     let h = offset;
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xfffff;
-    return `hsl(${h % 360}, 75%, 48%)`;
+    return `hsl(${h % 360},80%,50%)`;
+  }
+
+  resize() {
+    const wrap = document.getElementById('canvasWrapper');
+    const W = wrap ? wrap.offsetWidth : 720;
+    const H = Math.max(240, Math.min(340, W * 0.4));
+    this.canvas.width  = this.W = W;
+    this.canvas.height = this.H = H;
+    this._metrics();
+    this._resetBall();
+  }
+
+  _metrics() {
+    const { W, H } = this;
+    // Goal dimensions — arco bien alto y profundo para que el arquero sea visible
+    this.gD = Math.round(Math.min(72, W * 0.10));   // profundidad del arco (más ancho = más red)
+    this.gH = Math.round(H * 0.78);                  // altura del arco (casi toda la pantalla)
+    this.gY = Math.round((H - this.gH) / 2);         // top Y del arco
+
+    // Arquero — ocupa ~48 % del alto del arco
+    this.kH = Math.round(this.gH * 0.48);
+    this.kW = Math.max(28, Math.round(W * 0.038));   // ancho del cuerpo
+
+    // Posición X del arquero: JUSTO en la boca del arco (lado cancha), bien visible
+    if (!this.hk) this.hk = { y: this.H / 2 - this.kH / 2, vy: 2.3 };
+    if (!this.ak) this.ak = { y: this.H / 2 - this.kH / 2, vy: -2.0 };
+    this.hk.x = this.gD - Math.round(this.kW * 0.5);   // sobre la línea de gol
+    this.ak.x = W - this.gD - Math.round(this.kW * 0.5);
+
+    this.bR = Math.max(12, Math.round(H * 0.042));
+  }
+
+  _resetBall() {
+    if (!this.ball) this.ball = {};
+    Object.assign(this.ball, { x: this.W / 2, y: this.H / 2, vx: 0, vy: 0 });
   }
 
   // ── INPUT ───────────────────────────────────────────────────────────────
 
-  _setupInput() {
+  _input() {
     const c = this.canvas;
-    const xy = (e) => {
-      const r = c.getBoundingClientRect();
-      return { x: (e.clientX ?? e.touches[0].clientX) - r.left,
-               y: (e.clientY ?? e.touches[0].clientY) - r.top };
-    };
-    const xyt = (e) => {
-      const t = e.changedTouches[0] || e.touches[0];
-      const r = c.getBoundingClientRect();
-      return { x: t.clientX - r.left, y: t.clientY - r.top };
-    };
+    const pos = e => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const tch = e => { const t = e.touches[0] || e.changedTouches[0]; const r = c.getBoundingClientRect(); return { x: t.clientX - r.left, y: t.clientY - r.top }; };
 
-    c.addEventListener('mousedown',  e => this._down(xy(e)));
-    c.addEventListener('mousemove',  e => { if (this.drag) this._move(xy(e)); });
-    c.addEventListener('mouseup',    e => this._up());
+    c.addEventListener('mousedown',  e => this._dn(pos(e)));
+    c.addEventListener('mousemove',  e => { if (this.drag) this.dragCur = pos(e); });
+    c.addEventListener('mouseup',    () => this._up());
     c.addEventListener('mouseleave', () => { this.drag = null; });
-
-    c.addEventListener('touchstart', e => { e.preventDefault(); this._down(xyt(e)); }, { passive: false });
-    c.addEventListener('touchmove',  e => { e.preventDefault(); if (this.drag) this._move(xyt(e)); }, { passive: false });
+    c.addEventListener('touchstart', e => { e.preventDefault(); this._dn(tch(e)); }, { passive: false });
+    c.addEventListener('touchmove',  e => { e.preventDefault(); if (this.drag) this.dragCur = tch(e); }, { passive: false });
     c.addEventListener('touchend',   e => { e.preventDefault(); this._up(); }, { passive: false });
   }
 
-  _down(p) {
+  _dn(p) {
     if (this.phase !== 'ready') return;
-    if (Math.hypot(p.x - this.ball.x, p.y - this.ball.y) < this.bR * 3.8) {
-      this.drag    = p;
-      this.dragCur = { ...p };
+    if (Math.hypot(p.x - this.ball.x, p.y - this.ball.y) < this.bR * 4) {
+      this.drag = p; this.dragCur = { ...p };
     }
   }
-  _move(p) { this.dragCur = p; }
+
   _up() {
     if (!this.drag || this.phase !== 'ready') { this.drag = null; return; }
-    const dx   = this.dragCur.x - this.drag.x;
-    const dy   = this.dragCur.y - this.drag.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist > 18) {
-      const spd     = Math.min(dist * 0.34, 26);
-      this.ball.vx  = (dx / dist) * spd;
-      this.ball.vy  = (dy / dist) * spd;
-      this.phase    = 'shooting';
+    const dx = this.dragCur.x - this.drag.x;
+    const dy = this.dragCur.y - this.drag.y;
+    const d  = Math.hypot(dx, dy);
+    if (d > 16) {
+      const spd = Math.min(d * 0.33, 26);
+      this.ball.vx = dx / d * spd;
+      this.ball.vy = dy / d * spd;
+      this.phase = 'shooting';
     }
     this.drag = null;
   }
@@ -135,189 +124,127 @@ class KeeperGame {
   // ── GAME LOGIC ──────────────────────────────────────────────────────────
 
   _update() {
-    this._moveKeepers();
-    this._updateParticles();
-
+    this._keepers();
+    this._particles();
     if (this.phase === 'shooting') {
       this.ball.vx *= 0.991;
       this.ball.vy *= 0.991;
       this.ball.x  += this.ball.vx;
       this.ball.y  += this.ball.vy;
       this.ballAngle += Math.hypot(this.ball.vx, this.ball.vy) * 0.05;
-      this._checkBounds();
+      this._bounds();
     }
-
-    if (this.msgTimer > 0) {
-      this.msgTimer--;
-      if (this.msgTimer === 0) this.message = null;
-    }
+    if (this.msgFrames > 0 && --this.msgFrames === 0) this.message = null;
   }
 
-  _moveKeepers() {
+  _keepers() {
     const { gY, gH, kH, hk, ak } = this;
-    const min = gY, max = gY + gH - kH;
-    const clamp = (v) => Math.max(min, Math.min(max, v));
+    const mn = gY, mx = gY + gH - kH;
+    const cl = v => Math.max(mn, Math.min(mx, v));
 
     if (this.phase === 'ready' || this.phase === 'scored' || this.phase === 'missed') {
-      // Pong bounce — small random nudge to avoid monotony
-      hk.y += hk.vy;
-      if (hk.y <= min) { hk.y = min; hk.vy =  Math.abs(hk.vy) + Math.random() * 0.4; }
-      if (hk.y >= max) { hk.y = max; hk.vy = -Math.abs(hk.vy) - Math.random() * 0.4; }
-      ak.y += ak.vy;
-      if (ak.y <= min) { ak.y = min; ak.vy =  Math.abs(ak.vy) + Math.random() * 0.4; }
-      if (ak.y >= max) { ak.y = max; ak.vy = -Math.abs(ak.vy) - Math.random() * 0.4; }
+      // Movimiento pong — rebota arriba y abajo
+      hk.y += hk.vy; if (hk.y <= mn) { hk.y = mn; hk.vy = Math.abs(hk.vy) + Math.random()*0.3; }
+                      if (hk.y >= mx) { hk.y = mx; hk.vy = -(Math.abs(hk.vy) + Math.random()*0.3); }
+      ak.y += ak.vy; if (ak.y <= mn) { ak.y = mn; ak.vy = Math.abs(ak.vy) + Math.random()*0.3; }
+                      if (ak.y >= mx) { ak.y = mx; ak.vy = -(Math.abs(ak.vy) + Math.random()*0.3); }
 
     } else if (this.phase === 'shooting') {
-      // The keeper the ball is heading toward reacts; the other keeps bouncing
-      const trackSpd = 4.2;
-      const target   = clamp(this.ball.y - kH / 2);
-
+      const spd = 4.4;
+      const tgt = cl(this.ball.y - kH / 2);
       if (this.ball.vx < 0) {
-        // Heading left → home keeper tracks
-        hk.y += Math.sign(target - hk.y) * Math.min(Math.abs(target - hk.y), trackSpd);
-        ak.y  = clamp(ak.y + ak.vy);
+        hk.y += Math.sign(tgt - hk.y) * Math.min(Math.abs(tgt - hk.y), spd);
+        ak.y  = cl(ak.y + ak.vy);
       } else {
-        // Heading right → away keeper tracks
-        ak.y += Math.sign(target - ak.y) * Math.min(Math.abs(target - ak.y), trackSpd);
-        hk.y  = clamp(hk.y + hk.vy);
+        ak.y += Math.sign(tgt - ak.y) * Math.min(Math.abs(tgt - ak.y), spd);
+        hk.y  = cl(hk.y + hk.vy);
       }
-
     } else if (this.phase === 'saved') {
-      // Both keepers continue bouncing (celebration)
-      hk.y = clamp(hk.y + hk.vy * 1.5);
-      ak.y = clamp(ak.y + ak.vy * 1.5);
+      hk.y = Math.max(mn, Math.min(mx, hk.y + hk.vy * 1.6));
+      ak.y = Math.max(mn, Math.min(mx, ak.y + ak.vy * 1.6));
     }
   }
 
-  _checkBounds() {
+  _bounds() {
     const { W, H, gY, gH, gD, bR, ball } = this;
 
-    // ── LEFT GOAL ──
     if (ball.x - bR <= gD) {
       if (ball.y >= gY && ball.y <= gY + gH) {
-        if (this._hitsKeeper(ball, this.hk)) {
-          this._doSave(ball, +1);
-        } else {
-          this._doGoal('home');
-        }
-      } else {
-        this._doMissed(ball, +1); // bounced off post
-      }
+        this._hitKeeper(ball, this.hk) ? this._save(ball, 1) : this._goal('home');
+      } else { this._miss(ball, 1); }
       return;
     }
-
-    // ── RIGHT GOAL ──
     if (ball.x + bR >= W - gD) {
       if (ball.y >= gY && ball.y <= gY + gH) {
-        if (this._hitsKeeper(ball, this.ak)) {
-          this._doSave(ball, -1);
-        } else {
-          this._doGoal('away');
-        }
-      } else {
-        this._doMissed(ball, -1);
-      }
+        this._hitKeeper(ball, this.ak) ? this._save(ball, -1) : this._goal('away');
+      } else { this._miss(ball, -1); }
       return;
     }
+    if (ball.y - bR <= 0) { ball.y = bR; ball.vy =  Math.abs(ball.vy) * 0.7; }
+    if (ball.y + bR >= H) { ball.y = H - bR; ball.vy = -Math.abs(ball.vy) * 0.7; }
 
-    // ── TOP / BOTTOM WALLS ──
-    if (ball.y - bR <= 0)     { ball.y = bR;      ball.vy =  Math.abs(ball.vy) * 0.7; }
-    if (ball.y + bR >= H)     { ball.y = H - bR;  ball.vy = -Math.abs(ball.vy) * 0.7; }
-
-    // ── STALL (perdió toda velocidad en el medio) ──
     if (Math.abs(ball.vx) < 0.4 && Math.abs(ball.vy) < 0.4) {
-      this._setMsg('😬 Sin potencia — volvé a patear', 80, 'missed');
-      setTimeout(() => this._resetShot(), 1300);
+      this._msg('😬 Sin potencia — volvé a patear', 80, 'missed');
+      setTimeout(() => this._rst(), 1300);
     }
   }
 
-  _hitsKeeper(ball, keeper) {
-    const kcx = keeper.x + this.kW / 2;
-    const kcy = keeper.y + this.kH / 2;
-    return Math.hypot(ball.x - kcx, ball.y - kcy) < (this.bR + Math.max(this.kW, this.kH) * 0.55);
+  _hitKeeper(ball, k) {
+    // Bloqueo vertical: el arquero cubre [k.y … k.y + kH]
+    // Añadimos bonus igual al radio de la pelota para hacerlo justo
+    return ball.y >= k.y - this.bR * 0.4 && ball.y <= k.y + this.kH + this.bR * 0.4;
   }
 
-  _doGoal(team) {
+  _goal(team) {
     this.score[team]++;
-    const name = team === 'home' ? this.home.name : this.away.name;
-    this._setMsg(`⚽  ¡GOOOL!  ${name}`, 120, 'scored');
-    this._spawnParticles(team);
+    this._msg(`⚽  ¡GOOOL!  ${team === 'home' ? this.home.name : this.away.name}`, 120, 'scored');
+    this._burst(team);
     this._syncUI();
-    setTimeout(() => this._resetShot(), 2100);
+    setTimeout(() => this._rst(), 2100);
   }
-
-  _doSave(ball, sign) {
-    // Ball bounces back toward center
-    ball.vx = sign * Math.abs(ball.vx) * 0.5 + sign * (2 + Math.random() * 3);
-    ball.vy = (Math.random() - 0.5) * 9;
-    this._setMsg('🧤  ¡ATAJADA!  Volvé a intentar', 110, 'saved');
-    setTimeout(() => {
-      this.phase = 'ready';
-      this.message = null;
-    }, 1700);
+  _save(ball, sign) {
+    ball.vx = sign * (Math.abs(ball.vx) * 0.55 + 2 + Math.random() * 3);
+    ball.vy = (Math.random() - 0.5) * 10;
+    this._msg('🧤  ¡ATAJADA!  Intentá de nuevo', 110, 'saved');
+    setTimeout(() => { this.phase = 'ready'; this.message = null; }, 1700);
   }
-
-  _doMissed(ball, sign) {
+  _miss(ball, sign) {
     ball.vx = sign * Math.abs(ball.vx) * 0.4;
     ball.vy = -ball.vy * 0.5;
-    this._setMsg('📯  Afuera del arco', 80, 'missed');
-    setTimeout(() => this._resetShot(), 1300);
+    this._msg('📯  Afuera del palo', 80, 'missed');
+    setTimeout(() => this._rst(), 1300);
   }
 
-  _setMsg(txt, frames, phase) {
-    this.message  = txt;
-    this.msgTimer = frames;
-    this.phase    = phase;
-  }
-
-  _resetShot() {
-    this._resetBallPos();
-    this.ballAngle = 0;
-    this.message   = null;
-    this.phase     = 'ready';
-  }
+  _msg(txt, frames, phase) { this.message = txt; this.msgFrames = frames; this.phase = phase; }
+  _rst() { this._resetBall(); this.ballAngle = 0; this.message = null; this.phase = 'ready'; }
 
   _syncUI() {
-    const sd = document.getElementById('gameScoreDisplay');
-    const hi = document.getElementById('homeScoreInput');
-    const ai = document.getElementById('awayScoreInput');
-    const ch = document.getElementById('confirmHome');
-    const ca = document.getElementById('confirmAway');
     const { home, away } = this.score;
-
-    if (sd) sd.textContent = `${home} – ${away}`;
-    if (hi) hi.value = home;
-    if (ai) ai.value = away;
-    if (ch) ch.textContent = home;
-    if (ca) ca.textContent = away;
+    ['gameScoreDisplay'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = `${home} – ${away}`; });
+    ['homeScoreInput','confirmHome'].forEach(id => { const e = document.getElementById(id); if (e) e.value !== undefined ? e.value = home : e.textContent = home; });
+    ['awayScoreInput','confirmAway'].forEach(id => { const e = document.getElementById(id); if (e) e.value !== undefined ? e.value = away : e.textContent = away; });
+    const hi = document.getElementById('homeScoreInput'); if (hi) hi.value = home;
+    const ai = document.getElementById('awayScoreInput'); if (ai) ai.value = away;
+    const ch = document.getElementById('confirmHome');    if (ch) ch.textContent = home;
+    const ca = document.getElementById('confirmAway');    if (ca) ca.textContent = away;
+    // Flash the score display
+    const sd = document.getElementById('gameScoreDisplay');
+    if (sd) { sd.style.transform = 'scale(1.2)'; setTimeout(() => sd.style.transform = 'scale(1)', 200); }
   }
 
   // ── PARTICLES ───────────────────────────────────────────────────────────
 
-  _spawnParticles(team) {
+  _burst(team) {
     const cx = team === 'home' ? this.gD * 0.5 : this.W - this.gD * 0.5;
-    const cy = this.H / 2;
-    for (let i = 0; i < 32; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spd   = 3 + Math.random() * 9;
-      this.particles.push({
-        x: cx, y: cy,
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd - 4,
-        life: 1,
-        color: `hsl(${30 + Math.random() * 60},100%,${55 + Math.random() * 20}%)`,
-        r: 2 + Math.random() * 4
-      });
+    for (let i = 0; i < 36; i++) {
+      const a = Math.random() * Math.PI * 2, s = 3 + Math.random() * 10;
+      this.particles.push({ x: cx, y: this.H/2, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 4,
+        life: 1, color: `hsl(${30 + Math.random()*60},100%,${55+Math.random()*20}%)`, r: 2+Math.random()*5 });
     }
   }
-
-  _updateParticles() {
+  _particles() {
     this.particles = this.particles.filter(p => {
-      p.x    += p.vx;
-      p.y    += p.vy;
-      p.vy   += 0.35;
-      p.life -= 0.022;
-      return p.life > 0;
+      p.x += p.vx; p.y += p.vy; p.vy += 0.38; p.life -= 0.022; return p.life > 0;
     });
   }
 
@@ -326,355 +253,330 @@ class KeeperGame {
   _draw() {
     const { ctx, W, H } = this;
     ctx.clearRect(0, 0, W, H);
-    this._drawField();
-    this._drawGoal('left');
-    this._drawGoal('right');
+    this._field();
+    this._goal('left');
+    this._goal('right');
     this._drawParticles();
-    this._drawKeeper(this.hk, this.homeColor);
-    this._drawKeeper(this.ak, this.awayColor);
-    if (this.drag && this.dragCur) this._drawArrow();
-    this._drawBall();
-    this._drawFlags();
-    if (this.message) this._drawMessage();
-    if (this.phase === 'ready' && !this.drag) this._drawIdleHint();
+    // Arqueros: dibujados DELANTE de la red
+    this._keeper(this.hk, this.homeColor, this.homeImg, 'left');
+    this._keeper(this.ak, this.awayColor, this.awayImg, 'right');
+    if (this.drag && this.dragCur) this._arrow();
+    this._ball();
+    if (this.message) this._msgBox();
+    if (this.phase === 'ready' && !this.drag) this._hint();
   }
 
-  _drawField() {
-    const { ctx, W, H, gD } = this;
-
-    // Franjas de pasto
-    const strW = W / 8;
+  _field() {
+    const { ctx, W, H } = this;
     for (let i = 0; i < 8; i++) {
       ctx.fillStyle = i % 2 === 0 ? '#1b5e20' : '#1e7323';
-      ctx.fillRect(i * strW, 0, strW, H);
+      ctx.fillRect(i * W / 8, 0, W / 8, H);
     }
-
-    // Borde exterior
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth   = 2;
-    ctx.setLineDash([]);
-    ctx.strokeRect(3, 3, W - 6, H - 6);
-
-    // Línea central
-    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-    ctx.lineWidth   = 1.5;
-    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.strokeRect(3, 3, W-6, H-6);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1.5; ctx.setLineDash([8,6]);
     ctx.beginPath(); ctx.moveTo(W/2, 6); ctx.lineTo(W/2, H-6); ctx.stroke();
-
-    // Círculo central
-    ctx.beginPath(); ctx.arc(W/2, H/2, H * 0.19, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W/2, H/2, H*0.19, 0, Math.PI*2); ctx.stroke();
     ctx.setLineDash([]);
-
-    // Punto central
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.beginPath(); ctx.arc(W/2, H/2, 4, 0, Math.PI * 2); ctx.fill();
-
-    // Áreas de penalti
-    const pW = W * 0.11, pY = H * 0.22, pH = H * 0.56;
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(gD, pY, pW, pH);
-    ctx.strokeRect(W - gD - pW, pY, pW, pH);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(W/2, H/2, 4, 0, Math.PI*2); ctx.fill();
+    // Áreas
+    const pW = W*0.10, pY = H*0.20, pH = H*0.60;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(this.gD, pY, pW, pH);
+    ctx.strokeRect(W-this.gD-pW, pY, pW, pH);
   }
 
-  _drawGoal(side) {
-    const { ctx, W, gD, gH, gY } = this;
-    const isLeft = side === 'left';
-    const x      = isLeft ? 0 : W - gD;
-    const openX  = isLeft ? gD : W - gD;
+  _goal(side) {
+    const { ctx, W, H, gD, gH, gY } = this;
+    const isL = side === 'left';
+    const x    = isL ? 0 : W - gD;
+    const openX = isL ? gD : W - gD;
 
-    // Red del arco
-    const grad = ctx.createLinearGradient(x, 0, x + gD, 0);
-    grad.addColorStop(isLeft ? 0 : 1, 'rgba(0,0,0,0.55)');
-    grad.addColorStop(isLeft ? 1 : 0, 'rgba(0,0,0,0.18)');
-    ctx.fillStyle = grad;
+    // Fondo del arco — verde muy oscuro para que la red resalte
+    ctx.fillStyle = '#0d2b0f';
+    ctx.fillRect(x, gY, gD, gH);
+    // Gradiente de profundidad
+    const g = ctx.createLinearGradient(x, 0, x + gD, 0);
+    g.addColorStop(isL ? 0 : 1, 'rgba(0,0,0,0.55)');
+    g.addColorStop(isL ? 1 : 0, 'rgba(0,0,0,0.05)');
+    ctx.fillStyle = g;
     ctx.fillRect(x, gY, gD, gH);
 
-    // Grilla de red
-    ctx.strokeStyle = 'rgba(255,255,255,0.13)';
-    ctx.lineWidth = 0.6;
-    ctx.setLineDash([]);
-    const ns = 10;
-    for (let nx = x; nx <= x + gD; nx += ns) {
-      ctx.beginPath(); ctx.moveTo(nx, gY); ctx.lineTo(nx, gY + gH); ctx.stroke();
-    }
-    for (let ny = gY; ny <= gY + gH; ny += ns) {
-      ctx.beginPath(); ctx.moveTo(x, ny); ctx.lineTo(x + gD, ny); ctx.stroke();
-    }
+    // Grilla de red — blanca, bien visible
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+    for (let nx = x; nx <= x+gD; nx += 9) { ctx.beginPath(); ctx.moveTo(nx, gY); ctx.lineTo(nx, gY+gH); ctx.stroke(); }
+    for (let ny = gY; ny <= gY+gH; ny += 9) { ctx.beginPath(); ctx.moveTo(x, ny); ctx.lineTo(x+gD, ny); ctx.stroke(); }
 
-    // Postes blancos con brillo
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth   = 5;
-    ctx.lineCap     = 'round';
-    ctx.shadowColor = 'rgba(255,255,255,0.7)';
-    ctx.shadowBlur  = 8;
-    ctx.setLineDash([]);
-
-    ctx.beginPath(); ctx.moveTo(openX, gY);         ctx.lineTo(openX, gY + gH); ctx.stroke(); // poste lateral
-    ctx.beginPath(); ctx.moveTo(x, gY);              ctx.lineTo(openX, gY);      ctx.stroke(); // travesaño superior
-    ctx.beginPath(); ctx.moveTo(x, gY + gH);         ctx.lineTo(openX, gY + gH);ctx.stroke(); // travesaño inferior
+    // Postes blancos con glow — bien gruesos y visibles
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(255,255,255,0.9)'; ctx.shadowBlur = 14; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(openX, gY); ctx.lineTo(openX, gY+gH); ctx.stroke();   // palo lateral
+    ctx.beginPath(); ctx.moveTo(x, gY); ctx.lineTo(openX, gY); ctx.stroke();            // travesaño sup
+    ctx.beginPath(); ctx.moveTo(x, gY+gH); ctx.lineTo(openX, gY+gH); ctx.stroke();      // travesaño inf
     ctx.shadowBlur = 0;
   }
 
-  _drawKeeper(keeper, color) {
-    const { ctx, kW, kH } = this;
-    const { x, y } = keeper;
-    const cx = x + kW / 2;
+  // ────────────────────────────────────────────────────────────────────────
+  //  ARQUERO — figura humana de frente, brazos abiertos (estilo futbolito)
+  //  Sube y baja cubriendo el arco verticalmente.
+  // ────────────────────────────────────────────────────────────────────────
+  _keeper(k, color, flagImg, side) {
+    const { ctx, kW, kH, gD, gH, gY } = this;
 
-    // Sombra / glow del arquero
-    ctx.shadowColor = color;
-    ctx.shadowBlur  = 16;
+    // Centro X del arquero (sobre la línea de gol, lado cancha)
+    const cx = side === 'left' ? gD : this.W - gD;
+    const ky = k.y;   // top del arquero (posición vertical que sube/baja)
 
-    // Cuerpo
-    ctx.fillStyle = color;
-    this._rrect(x, y, kW, kH, 5);
-    ctx.fill();
+    // Proporciones humanas dentro de kH
+    const headR   = kH * 0.10;
+    const headCY  = ky + headR;                      // centro de la cabeza
+    const shldrY  = headCY + headR + kH * 0.03;     // hombros
+    const torsoH  = kH * 0.30;
+    const torsoW  = kW;
+    const waistY  = shldrY + torsoH;
+    const armY    = shldrY + kH * 0.06;              // altura de los brazos
+    const armReach = kH * 0.42;                      // alcance de los brazos (hacia arriba/abajo)
+    const gloveR  = kH * 0.062;
+    const legLen  = kH * 0.26;
+    const legW    = kW * 0.30;
 
-    // Reflejo lateral
-    const hl = ctx.createLinearGradient(x, y, x + kW, y);
-    hl.addColorStop(0,   'rgba(255,255,255,0.35)');
-    hl.addColorStop(0.5, 'rgba(255,255,255,0.0)');
-    ctx.fillStyle = hl;
-    this._rrect(x, y, kW, kH, 5);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-
-    // Cabeza
-    ctx.fillStyle = '#ffd5a8';
+    // ─ Sombra suave debajo del arquero ─
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.beginPath();
-    ctx.arc(cx, y - kH * 0.1, kW * 0.44, 0, Math.PI * 2);
+    ctx.ellipse(cx, ky + kH + 5, kH * 0.32, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Guantes
-    ctx.fillStyle = '#ffffcc';
-    const g = (gx, gy) => { ctx.beginPath(); ctx.arc(gx, gy, 4.5, 0, Math.PI*2); ctx.fill(); };
-    g(x - 3, y + kH * 0.28);
-    g(x + kW + 3, y + kH * 0.28);
-    g(x - 3, y + kH * 0.70);
-    g(x + kW + 3, y + kH * 0.70);
+    // ─ GLOW del arquero ─
+    ctx.shadowColor = color;
+    ctx.shadowBlur  = 22;
+
+    // ─ BRAZOS abiertos (verticalmente en el arco — arriba y abajo) ─
+    // En futbolito el arquero tiene los brazos extendidos cubriendo
+    // la apertura vertical del arco → se dibujan como 2 líneas
+    // que salen de los hombros hacia arriba y hacia abajo.
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = kH * 0.085;
+    ctx.lineCap     = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - kW * 0.15, armY);            // hombro izq
+    ctx.lineTo(cx - kW * 0.15, armY - armReach); // mano arriba izq
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + kW * 0.15, armY);
+    ctx.lineTo(cx + kW * 0.15, armY - armReach); // mano arriba der
+    ctx.stroke();
+    // También brazos hacia abajo (posición defensiva)
+    ctx.lineWidth = kH * 0.065;
+    ctx.beginPath();
+    ctx.moveTo(cx - kW * 0.20, shldrY + torsoH * 0.4);
+    ctx.lineTo(cx - kW * 0.28, waistY + kH * 0.08);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + kW * 0.20, shldrY + torsoH * 0.4);
+    ctx.lineTo(cx + kW * 0.28, waistY + kH * 0.08);
+    ctx.stroke();
+
+    // ─ TORSO (camiseta de arquero) ─
+    ctx.fillStyle = color;
+    this._rr(cx - torsoW/2, shldrY, torsoW, torsoH, 5);
+    ctx.fill();
+
+    // Franja horizontal en la camiseta
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(cx - torsoW/2, shldrY + torsoH * 0.42, torsoW, torsoH * 0.18);
+
+    ctx.shadowBlur = 0;
+
+    // ─ SHORTS ─
+    ctx.fillStyle = this._dark(color);
+    this._rr(cx - torsoW*0.45, waistY - 1, torsoW*0.9, kH * 0.13, 3);
+    ctx.fill();
+
+    // ─ PIERNAS ─
+    ctx.strokeStyle = this._dark(color);
+    ctx.lineWidth   = legW * 1.8;
+    ctx.lineCap     = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - torsoW*0.22, waistY + kH*0.10); ctx.lineTo(cx - torsoW*0.3, waistY + legLen); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + torsoW*0.22, waistY + kH*0.10); ctx.lineTo(cx + torsoW*0.3, waistY + legLen); ctx.stroke();
+
+    // Botines
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.ellipse(cx - torsoW*0.3, waistY + legLen + legW*0.5, legW*1.1, legW*0.7, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + torsoW*0.3, waistY + legLen + legW*0.5, legW*1.1, legW*0.7,  0.2, 0, Math.PI*2); ctx.fill();
+
+    // ─ CABEZA ─
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 5;
+    ctx.fillStyle   = '#ffd5a8';
+    ctx.beginPath(); ctx.arc(cx, headCY, headR, 0, Math.PI * 2); ctx.fill();
+    // Pelo
+    ctx.fillStyle = '#2c1810';
+    ctx.beginPath(); ctx.arc(cx, headCY - headR*0.12, headR*1.03, Math.PI, 0); ctx.fill();
+    // Ojos
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(cx - headR*0.33, headCY - headR*0.1, headR*0.12, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + headR*0.33, headCY - headR*0.1, headR*0.12, 0, Math.PI*2); ctx.fill();
+
+    // ─ GUANTES en las manos arriba ─
+    ctx.shadowColor = 'rgba(255,255,200,0.7)'; ctx.shadowBlur = 10;
+    ctx.fillStyle   = '#fffde0';
+    ctx.beginPath(); ctx.arc(cx - kW*0.15, armY - armReach, gloveR, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + kW*0.15, armY - armReach, gloveR, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // ─ BANDERA encima del arco ─
+    this._flagAbove(flagImg, side);
   }
 
-  _drawBall() {
+  _flagAbove(img, side) {
+    const { ctx, W, gD, gH, gY } = this;
+    if (!img.complete || img.naturalWidth === 0) return;
+    const fw = Math.min(52, gD * 0.88);
+    const fh = Math.round(fw * 0.65);
+    const cx = side === 'left' ? gD / 2 : W - gD / 2;
+    const fy = gY - fh - 12;
+
+    ctx.save();
+    // Marco
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 8;
+    ctx.fillStyle = '#111';
+    this._rr(cx - fw/2 - 2, fy - 2, fw + 4, fh + 4, 4);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Bandera recortada
+    ctx.beginPath();
+    this._rr(cx - fw/2, fy, fw, fh, 3);
+    ctx.clip();
+    ctx.drawImage(img, cx - fw/2, fy, fw, fh);
+    ctx.restore();
+
+    // Nombre del equipo
+    const fs = Math.max(9, Math.round(this.H * 0.036));
+    ctx.fillStyle    = '#fff';
+    ctx.font         = `700 ${fs}px Inter, sans-serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor  = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 4;
+    const nm = side === 'left' ? this.home.name : this.away.name;
+    ctx.fillText(nm.length > 11 ? nm.slice(0, 11) + '…' : nm, cx, fy + fh + 4);
+    ctx.shadowBlur = 0;
+  }
+
+  _ball() {
     const { ctx, bR } = this;
     const { x, y } = this.ball;
 
     // Sombra
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.beginPath();
-    ctx.ellipse(x + 2, y + bR * 0.65, bR * 0.78, bR * 0.28, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+2, y+bR*0.65, bR*0.76, bR*0.28, 0, 0, Math.PI*2); ctx.fill();
 
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(this.ballAngle);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(this.ballAngle);
 
-    // Pelota blanca
-    ctx.fillStyle   = '#ffffff';
-    ctx.shadowColor = 'rgba(255,255,255,0.5)';
-    ctx.shadowBlur  = 7;
-    ctx.beginPath();
-    ctx.arc(0, 0, bR, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(255,255,255,0.5)'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(0, 0, bR, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Manchas negras (5 puntos tipo pelota oficial)
+    // Manchas negras
     ctx.fillStyle = '#111';
-    const pts = [[0,0],[bR*0.48,-bR*0.48],[-bR*0.48,-bR*0.48],[bR*0.48,bR*0.48],[-bR*0.48,bR*0.48]];
-    pts.forEach(([px,py]) => {
-      ctx.beginPath(); ctx.arc(px, py, bR * 0.23, 0, Math.PI*2); ctx.fill();
+    [[0,0],[bR*.48,-bR*.48],[-bR*.48,-bR*.48],[bR*.48,bR*.48],[-bR*.48,bR*.48]].forEach(([px,py]) => {
+      ctx.beginPath(); ctx.arc(px, py, bR*0.23, 0, Math.PI*2); ctx.fill();
     });
-
     // Clip circular
     ctx.globalCompositeOperation = 'destination-in';
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(0, 0, bR, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, bR, 0, Math.PI*2); ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
 
     // Brillo
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.beginPath();
-    ctx.ellipse(-bR*0.3, -bR*0.32, bR*0.22, bR*0.14, -Math.PI/4, 0, Math.PI*2);
-    ctx.fill();
-
+    ctx.beginPath(); ctx.ellipse(-bR*.3, -bR*.32, bR*.22, bR*.14, -Math.PI/4, 0, Math.PI*2); ctx.fill();
     ctx.restore();
 
-    // Anillo pulsante cuando está listo para patear
+    // Anillo pulsante en idle
     if (this.phase === 'ready' && !this.drag) {
-      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 480);
-      ctx.strokeStyle = `rgba(255,220,50,${0.25 + pulse * 0.4})`;
-      ctx.lineWidth   = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.arc(x, y, bR + 7 + pulse * 5, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      const p = 0.5 + 0.5*Math.sin(Date.now()/480);
+      ctx.strokeStyle = `rgba(255,220,50,${0.25+p*0.45})`; ctx.lineWidth = 2.5; ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.arc(x, y, bR+7+p*5, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
     }
   }
 
-  _drawArrow() {
+  _arrow() {
     const { ctx, ball } = this;
-    const dx   = this.dragCur.x - this.drag.x;
-    const dy   = this.dragCur.y - this.drag.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 8) return;
+    const dx = this.dragCur.x - this.drag.x;
+    const dy = this.dragCur.y - this.drag.y;
+    const d  = Math.hypot(dx, dy);
+    if (d < 8) return;
+    const nx = dx/d, ny = dy/d;
+    const len = Math.min(d*.82, 95);
+    const ex = ball.x + nx*len, ey = ball.y + ny*len;
+    const al = Math.min(d/45, 1);
 
-    const nx    = dx / dist;
-    const ny    = dy / dist;
-    const len   = Math.min(dist * 0.82, 95);
-    const ex    = ball.x + nx * len;
-    const ey    = ball.y + ny * len;
-    const alpha = Math.min(dist / 45, 1);
+    ctx.strokeStyle = `rgba(255,220,50,${.7*al})`; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.setLineDash([]);
+    ctx.shadowColor = 'rgba(255,220,50,.5)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(ex, ey); ctx.stroke();
 
-    // Línea de tiro
-    ctx.strokeStyle = `rgba(255,220,50,${0.72 * alpha})`;
-    ctx.lineWidth   = 3.5;
-    ctx.lineCap     = 'round';
-    ctx.setLineDash([]);
-    ctx.shadowColor = 'rgba(255,220,50,0.5)';
-    ctx.shadowBlur  = 10;
-    ctx.beginPath();
-    ctx.moveTo(ball.x, ball.y);
-    ctx.lineTo(ex, ey);
-    ctx.stroke();
-
-    // Punta de flecha
     const ang = Math.atan2(dy, dx);
-    ctx.fillStyle = `rgba(255,220,50,${0.9 * alpha})`;
+    ctx.fillStyle = `rgba(255,220,50,${.9*al})`;
     ctx.beginPath();
     ctx.moveTo(ex, ey);
-    ctx.lineTo(ex - 17 * Math.cos(ang - 0.38), ey - 17 * Math.sin(ang - 0.38));
-    ctx.lineTo(ex - 17 * Math.cos(ang + 0.38), ey - 17 * Math.sin(ang + 0.38));
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
-
-  _drawFlags() {
-    const { ctx, W, gD, gY, gH, homeImg, awayImg } = this;
-    const fw = Math.round(Math.min(50, gD * 0.82));
-    const fh = Math.round(fw * 0.66);
-    const fy = gY - fh - 10;
-    const homeFX = Math.round(gD / 2 - fw / 2);
-    const awayFX = Math.round(W - gD / 2 - fw / 2);
-
-    const drawF = (img, fx) => {
-      if (!img.complete || img.naturalWidth === 0) return;
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.6)';
-      ctx.shadowBlur  = 6;
-      ctx.fillStyle   = '#000';
-      this._rrect(fx - 2, fy - 2, fw + 4, fh + 4, 4);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      this._rrect(fx, fy, fw, fh, 3);
-      ctx.clip();
-      ctx.drawImage(img, fx, fy, fw, fh);
-      ctx.restore();
-    };
-    drawF(homeImg, homeFX);
-    drawF(awayImg, awayFX);
-
-    // Nombres de equipos
-    const fs = Math.max(9, Math.round(this.H * 0.038));
-    ctx.fillStyle    = 'rgba(255,255,255,0.88)';
-    ctx.font         = `700 ${fs}px Inter, sans-serif`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'top';
-    ctx.shadowColor  = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur   = 4;
-    const trunc = (s, n=11) => s.length > n ? s.slice(0, n) + '…' : s;
-    ctx.fillText(trunc(this.home.name), gD / 2,       fy + fh + 4);
-    ctx.fillText(trunc(this.away.name), W - gD / 2,   fy + fh + 4);
-    ctx.shadowBlur = 0;
+    ctx.lineTo(ex - 17*Math.cos(ang-.38), ey - 17*Math.sin(ang-.38));
+    ctx.lineTo(ex - 17*Math.cos(ang+.38), ey - 17*Math.sin(ang+.38));
+    ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
   }
 
   _drawParticles() {
-    const ctx = this.ctx;
     this.particles.forEach(p => {
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle   = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
+      this.ctx.globalAlpha = p.life; this.ctx.fillStyle = p.color;
+      this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); this.ctx.fill();
     });
-    ctx.globalAlpha = 1;
+    this.ctx.globalAlpha = 1;
   }
 
-  _drawMessage() {
-    const { ctx, W, H, phase, message } = this;
-    const isGoal = phase === 'scored';
-    const isSave = phase === 'saved';
-
-    const bg = isGoal ? 'rgba(240,180,41,0.96)'
-             : isSave ? 'rgba(31,111,235,0.96)'
-             :          'rgba(30,30,30,0.90)';
-    const fg = isGoal ? '#000' : '#fff';
-
-    const mW = Math.min(W * 0.68, 330);
-    const mH = 52;
-    const mx = (W - mW) / 2;
-    const my = (H - mH) / 2;
-
-    ctx.shadowColor = isGoal ? '#f0b429' : isSave ? '#1f6feb' : '#000';
-    ctx.shadowBlur  = 22;
-    ctx.fillStyle   = bg;
-    this._rrect(mx, my, mW, mH, 26);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle    = fg;
-    ctx.font         = `700 ${Math.max(13, Math.round(H * 0.054))}px Inter, sans-serif`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(message, W / 2, H / 2 + 1);
+  _msgBox() {
+    const { ctx, W, H, phase } = this;
+    const isG = phase === 'scored', isS = phase === 'saved';
+    const mW = Math.min(W*.68, 340), mH = 52;
+    ctx.shadowColor = isG ? '#f0b429' : isS ? '#1f6feb' : '#000'; ctx.shadowBlur = 24;
+    ctx.fillStyle   = isG ? 'rgba(240,180,41,.96)' : isS ? 'rgba(31,111,235,.96)' : 'rgba(30,30,30,.92)';
+    this._rr((W-mW)/2, (H-mH)/2, mW, mH, 26); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = isG ? '#000' : '#fff';
+    ctx.font = `700 ${Math.max(13, Math.round(H*.053))}px Inter,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(this.message, W/2, H/2+1);
   }
 
-  _drawIdleHint() {
+  _hint() {
     const { ctx, W, H } = this;
-    ctx.fillStyle    = 'rgba(255,255,255,0.3)';
-    ctx.font         = `${Math.max(10, Math.round(H * 0.036))}px Inter, sans-serif`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('⬅  arrastrá la pelota hacia un arco  ➡', W / 2, H - 5);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.font = `${Math.max(10, Math.round(H*.035))}px Inter,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('⬅  arrastrá la pelota hacia un arco  ➡', W/2, H-5);
   }
 
-  _rrect(x, y, w, h, r) {
+  // ── UTILS ────────────────────────────────────────────────────────────────
+
+  _rr(x, y, w, h, r) {
     const ctx = this.ctx;
     ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y,     x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h,     x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y,         x + r, y);
-    ctx.closePath();
+    ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y); ctx.closePath();
   }
 
-  // ── LOOP ────────────────────────────────────────────────────────────────
-
-  _loop() {
-    this._update();
-    this._draw();
-    requestAnimationFrame(() => this._loop());
+  _dark(hsl) {
+    return hsl.replace(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/, (_, h, s, l) => `hsl(${h},${s}%,${Math.max(18,+l-18)}%)`);
   }
+
+  _loop() { this._update(); this._draw(); requestAnimationFrame(() => this._loop()); }
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
-
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.GAME_CONFIG) {
-    new KeeperGame(window.GAME_CONFIG);
-  }
+  if (window.GAME_CONFIG) new KeeperGame(window.GAME_CONFIG);
 
-  // Animate wisdom bars
-  document.querySelectorAll('.wisdom-bar').forEach((bar, i) => {
-    const w = bar.style.width;
-    bar.style.width = '0%';
-    setTimeout(() => { bar.style.width = w; }, 300 + i * 100);
+  // Animar barras de sabiduría
+  document.querySelectorAll('.wisdom-bar').forEach((b, i) => {
+    const w = b.style.width; b.style.width = '0%';
+    setTimeout(() => { b.style.width = w; }, 300 + i * 100);
   });
 });
